@@ -1,0 +1,1 @@
+"""Twogether backend application package."""
