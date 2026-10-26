@@ -9,6 +9,7 @@ import { FloatingHearts } from './components/FloatingHearts';
 import type { FloatingHeartItem } from './components/FloatingHearts';
 import { MobileNav } from './components/MobileNav';
 import { ProfileMenuModal } from './components/ProfileMenuModal';
+import { CoupleOnboardingModal } from './components/CoupleOnboardingModal';
 import type { CoupleData } from './services/api';
 import {
   getCoupleData,
@@ -26,6 +27,15 @@ export function App() {
 
   // Couple Data from real backend
   const [coupleData, setCoupleData] = useState<CoupleData | null>(null);
+
+  // Active Partner Perspective (0 = Partner 1 e.g. Aishu, 1 = Partner 2 e.g. Prago)
+  const [activePartnerIndex, setActivePartnerIndex] = useState<number>(() => {
+    const saved = localStorage.getItem('twogether_partner_index');
+    return saved !== null ? Number(saved) : 0;
+  });
+
+  // Couple Onboarding & Pairing Modal State (starts false until couple data is inspected)
+  const [showOnboardingModal, setShowOnboardingModal] = useState<boolean>(false);
 
   // Profile Menu Modal State
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
@@ -60,6 +70,19 @@ export function App() {
     try {
       const data = await getCoupleData();
       setCoupleData(data);
+
+      const hasOnboardedFlag = localStorage.getItem('twogether_onboarded') === 'true';
+      const hasConfiguredPartner =
+        Boolean(data?.partners && data.partners.length > 0 && data.partners[0].name && data.partners[0].name.trim());
+
+      if (hasConfiguredPartner || hasOnboardedFlag) {
+        // Couple is already configured and user is logged in
+        localStorage.setItem('twogether_onboarded', 'true');
+        setShowOnboardingModal(false);
+      } else {
+        // Only brand new, unconfigured space without any partner triggers onboarding modal
+        setShowOnboardingModal(true);
+      }
     } catch (err) {
       console.warn('Could not load couple data from backend:', err);
     }
@@ -68,9 +91,13 @@ export function App() {
   // Check live FastAPI backend health
   const checkBackendHealth = useCallback(async () => {
     setIsRefreshing(true);
+    const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+    const isDev = typeof window !== 'undefined' && window.location.port.startsWith('517');
+    const backendBase = isDev ? `http://${host}:8000` : '';
+
     try {
       // 1. App health
-      const appRes = await fetch('http://localhost:8000/health').catch(() =>
+      const appRes = await fetch(`${backendBase}/health`).catch(() =>
         fetch('/api/health')
       );
       if (appRes && appRes.ok) {
@@ -79,7 +106,7 @@ export function App() {
       }
 
       // 2. DB health
-      const dbRes = await fetch('http://localhost:8000/health/db').catch(() =>
+      const dbRes = await fetch(`${backendBase}/health/db`).catch(() =>
         fetch('/api/health/db')
       );
       if (dbRes && dbRes.ok) {
@@ -88,7 +115,7 @@ export function App() {
       }
 
       // 3. Redis health
-      const redisRes = await fetch('http://localhost:8000/health/redis').catch(() =>
+      const redisRes = await fetch(`${backendBase}/health/redis`).catch(() =>
         fetch('/api/health/redis')
       );
       if (redisRes && redisRes.ok) {
@@ -118,28 +145,53 @@ export function App() {
         if (event.data) {
           setCoupleData(event.data);
         }
+      } else if (event.type === 'PRESENCE_UPDATED') {
+        const onlineIndices: number[] = event.online_partners || [];
+        setCoupleData((prev) => {
+          if (!prev) return prev;
+          const updatedPartners = prev.partners.map((p, idx) => ({
+            ...p,
+            is_online: onlineIndices.includes(idx),
+          }));
+          return { ...prev, partners: updatedPartners };
+        });
       } else if (event.type === 'HEARTBEAT') {
         setHeartCount((c) => c + 1);
         setLastHeartbeat(`by ${event.sender || 'Partner'} just now`);
         triggerHearts(6);
       }
-    });
+    }, activePartnerIndex);
 
     const interval = setInterval(checkBackendHealth, 30000);
     return () => {
       unsubscribe();
       clearInterval(interval);
     };
-  }, [loadCouple, checkBackendHealth, triggerHearts]);
+  }, [loadCouple, checkBackendHealth, triggerHearts, activePartnerIndex]);
 
-  const p1Name = coupleData?.partners?.[0]?.name || 'Alex';
+  // Current active user and other partner details
+  const currentPartner = coupleData?.partners?.[activePartnerIndex] || coupleData?.partners?.[0];
+  const otherPartner = coupleData?.partners?.[activePartnerIndex === 0 ? 1 : 0] || coupleData?.partners?.[1];
+
+  const currentUserName = currentPartner?.name || (activePartnerIndex === 0 ? 'Aishu' : 'Prago');
+  const otherPartnerName = otherPartner?.name || (activePartnerIndex === 0 ? 'Prago' : 'Aishu');
+
+  const handleSwitchIdentity = () => {
+    const next = activePartnerIndex === 0 ? 1 : 0;
+    setActivePartnerIndex(next);
+    localStorage.setItem('twogether_partner_index', String(next));
+    const nextPartner = coupleData?.partners?.[next];
+    if (nextPartner) {
+      localStorage.setItem('twogether_partner_name', nextPartner.name);
+    }
+  };
 
   const handleSendHeart = async () => {
     setHeartCount((c) => c + 1);
     setLastHeartbeat('Just now');
     triggerHearts(6);
     try {
-      await sendLiveHeartbeat(p1Name);
+      await sendLiveHeartbeat(currentUserName);
     } catch (e) {
       console.warn('Heartbeat send failed', e);
     }
@@ -149,7 +201,7 @@ export function App() {
     setLastHeartbeat('Sent right now');
     triggerHearts(4);
     try {
-      await sendLiveHeartbeat(p1Name);
+      await sendLiveHeartbeat(currentUserName);
     } catch (e) {
       console.warn('Heartbeat send failed', e);
     }
@@ -162,9 +214,10 @@ export function App() {
 
   const renderDashboardSections = () => (
     <>
-      {/* 1. Couple Spotlight Banner */}
+      {/* 1. Couple Spotlight Banner (Oriented based on who is using the app) */}
       <CoupleSpotlight
         coupleData={coupleData}
+        activePartnerIndex={activePartnerIndex}
         onHeartbeat={handleHeartbeat}
         lastHeartbeat={lastHeartbeat}
         onEditPartner={(tab) => handleOpenEdit(tab)}
@@ -178,8 +231,10 @@ export function App() {
         />
         <DailyGameCard
           dailyPrompt={coupleData?.daily_prompt || null}
+          activePartnerIndex={activePartnerIndex}
+          userName={currentUserName}
+          partnerName={otherPartnerName}
           onAnswerSubmitted={(updated) => setCoupleData(updated)}
-          partnerName={coupleData?.partners?.[1]?.name || 'Maya'}
         />
       </div>
 
@@ -215,7 +270,10 @@ export function App() {
         onSendHeart={handleSendHeart}
         heartCount={heartCount}
         coupleData={coupleData}
+        activePartnerIndex={activePartnerIndex}
+        onSwitchIdentity={handleSwitchIdentity}
         onOpenProfileMenu={() => handleOpenEdit('user')}
+        onOpenOnboarding={() => setShowOnboardingModal(true)}
       />
 
       {/* Main Viewport Container */}
@@ -253,6 +311,23 @@ export function App() {
           onUpdated={(updated) => setCoupleData(updated)}
         />
       )}
+
+      {/* Onboarding & Couple Pairing Modal */}
+      <CoupleOnboardingModal
+        isOpen={showOnboardingModal}
+        currentCoupleData={coupleData}
+        currentPartnerIndex={activePartnerIndex}
+        onClose={() => {
+          localStorage.setItem('twogether_onboarded', 'true');
+          setShowOnboardingModal(false);
+        }}
+        onComplete={(updatedCouple, partnerIdx) => {
+          localStorage.setItem('twogether_onboarded', 'true');
+          setCoupleData(updatedCouple);
+          setActivePartnerIndex(partnerIdx);
+          setShowOnboardingModal(false);
+        }}
+      />
     </div>
   );
 }

@@ -3,6 +3,9 @@ export interface Partner {
   couple_id: number;
   name: string;
   city: string;
+  gender?: string | null;
+  age?: number | null;
+  dob?: string | null;
   timezone: string;
   status_message: string;
   status_emoji: string;
@@ -38,13 +41,16 @@ export interface CoupleData {
   daily_prompt: DailyPrompt | null;
 }
 
-const API_BASE = window.location.origin.includes('517')
-  ? 'http://localhost:8000/api/couple'
+const API_HOST = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+const isDev = typeof window !== 'undefined' && window.location.port.startsWith('517');
+
+const API_BASE = isDev
+  ? `http://${API_HOST}:8000/api/couple`
   : '/api/couple';
 
-const WS_BASE = window.location.origin.includes('517')
-  ? 'ws://localhost:8000/api/couple/ws'
-  : `ws://${window.location.host}/api/couple/ws`;
+const WS_BASE = isDev
+  ? `ws://${API_HOST}:8000/api/couple/ws`
+  : `ws://${typeof window !== 'undefined' ? window.location.host : 'localhost:8000'}/api/couple/ws`;
 
 export async function getCoupleData(): Promise<CoupleData> {
   const res = await fetch(API_BASE);
@@ -52,10 +58,44 @@ export async function getCoupleData(): Promise<CoupleData> {
   return res.json();
 }
 
+export interface OnboardPartnerPayload {
+  name: string;
+  gender?: string | null;
+  age?: number | null;
+  dob?: string | null;
+  city: string;
+  avatar_url?: string | null;
+  pairing_code?: string | null;
+  partner_index?: number | null;
+}
+
+export interface OnboardResponse {
+  couple: CoupleData;
+  partner_index: number;
+  pairing_code: string;
+  partner_name: string;
+}
+
+export async function onboardCouplePartner(payload: OnboardPartnerPayload): Promise<OnboardResponse> {
+  const res = await fetch(`${API_BASE}/onboarding`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Failed to onboard partner' }));
+    throw new Error(err.detail || 'Failed to onboard partner');
+  }
+  return res.json();
+}
+
 export async function updatePartnerProfile(payload: {
   partner_index: number;
   name?: string;
   city?: string;
+  gender?: string | null;
+  age?: number | null;
+  dob?: string | null;
   timezone?: string;
   status_message?: string;
   status_emoji?: string;
@@ -122,7 +162,8 @@ export async function submitDailyAnswer(
 }
 
 export function subscribeToCoupleRealtime(
-  onMessage: (event: { type: string; data?: any; sender?: string }) => void
+  onMessage: (event: { type: string; data?: any; sender?: string; online_partners?: number[] }) => void,
+  partnerIndex: number = 0
 ): () => void {
   let ws: WebSocket | null = null;
   let keepAliveTimer: any = null;
@@ -130,10 +171,14 @@ export function subscribeToCoupleRealtime(
 
   const connect = () => {
     try {
-      ws = new WebSocket(WS_BASE);
+      const url = `${WS_BASE}?partner_index=${partnerIndex}`;
+      ws = new WebSocket(url);
 
       ws.onopen = () => {
-        console.log('[WebSocket] Connected to Twogether Realtime backend.');
+        console.log(`[WebSocket] Connected to Twogether Realtime backend as partner ${partnerIndex}.`);
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'REGISTER_PARTNER', partner_index: partnerIndex }));
+        }
         keepAliveTimer = setInterval(() => {
           if (ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'PING' }));

@@ -5,14 +5,18 @@ import { submitDailyAnswer } from '../services/api';
 
 interface DailyGameCardProps {
   dailyPrompt: DailyPrompt | null;
-  onAnswerSubmitted: (data: CoupleData) => void;
+  activePartnerIndex?: number;
   partnerName: string;
+  userName?: string;
+  onAnswerSubmitted: (data: CoupleData) => void;
 }
 
 export const DailyGameCard: React.FC<DailyGameCardProps> = ({
   dailyPrompt,
-  onAnswerSubmitted,
+  activePartnerIndex = 0,
   partnerName,
+  userName = 'You',
+  onAnswerSubmitted,
 }) => {
   const [activeTab, setActiveTab] = useState<'question' | 'trivia'>('question');
   const [myAnswer, setMyAnswer] = useState<string>('');
@@ -23,10 +27,20 @@ export const DailyGameCard: React.FC<DailyGameCardProps> = ({
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [triviaAnswered, setTriviaAnswered] = useState<boolean>(false);
 
-  const isUser1Answered = dailyPrompt?.user1_answered || false;
-  const user1AnswerText = dailyPrompt?.user1_answer || myAnswer;
-  const user2AnswerText = dailyPrompt?.user2_answer || "A rooftop noodle bar in Shinjuku, Tokyo watching the rain and sharing hot gyozas under one coat! 🥟🌧️";
-  const questionText = dailyPrompt?.question || "If we could magically teleport together to any spot in the world for just 3 hours tonight, where would we go and what would we eat?";
+  const isUser1 = activePartnerIndex === 0;
+  const isMyAnswered = isUser1 ? dailyPrompt?.user1_answered : dailyPrompt?.user2_answered;
+  const myAnswerText = isUser1
+    ? dailyPrompt?.user1_answer || myAnswer
+    : dailyPrompt?.user2_answer || myAnswer;
+
+  const isPartnerAnswered = isUser1 ? dailyPrompt?.user2_answered : dailyPrompt?.user1_answered;
+  const partnerAnswerText = isUser1
+    ? dailyPrompt?.user2_answer || "A rooftop noodle bar in Shinjuku, Tokyo watching the rain and sharing hot gyozas under one coat! 🥟🌧️"
+    : dailyPrompt?.user1_answer || "A quiet beach cottage watching the stars while listening to our song. 🌊✨";
+
+  const questionText =
+    dailyPrompt?.question ||
+    'If we could magically teleport together to any spot in the world for just 3 hours tonight, where would we go and what would we eat?';
 
   const handleAnswerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +48,7 @@ export const DailyGameCard: React.FC<DailyGameCardProps> = ({
 
     setIsSubmitting(true);
     try {
-      const updated = await submitDailyAnswer(0, myAnswer.trim());
+      const updated = await submitDailyAnswer(activePartnerIndex, myAnswer.trim());
       onAnswerSubmitted(updated);
     } catch (err) {
       console.error('Failed to submit daily answer', err);
@@ -78,11 +92,11 @@ export const DailyGameCard: React.FC<DailyGameCardProps> = ({
             <h3 className="prompt-text">"{questionText}"</h3>
           </div>
 
-          {!isUser1Answered && !myAnswer ? (
+          {!isMyAnswered && !myAnswer ? (
             <form onSubmit={handleAnswerSubmit} className="answer-form">
               <textarea
                 className="answer-textarea"
-                placeholder={`Write your answer here... (${partnerName} can't see it until you both answer!)`}
+                placeholder={`Write your answer here, ${userName}... (${partnerName} can't see it until you both answer!)`}
                 value={myAnswer}
                 onChange={(e) => setMyAnswer(e.target.value)}
                 rows={3}
@@ -101,10 +115,10 @@ export const DailyGameCard: React.FC<DailyGameCardProps> = ({
               {/* My submitted answer */}
               <div className="answer-bubble my-answer">
                 <div className="bubble-header">
-                  <span className="bubble-author">Your Answer</span>
+                  <span className="bubble-author">Your Answer ({userName})</span>
                   <CheckCircle2 size={16} color="#10B981" />
                 </div>
-                <p className="bubble-text">"{user1AnswerText}"</p>
+                <p className="bubble-text">"{myAnswerText}"</p>
               </div>
 
               {/* Partner answer reveal card */}
@@ -119,19 +133,25 @@ export const DailyGameCard: React.FC<DailyGameCardProps> = ({
                 </div>
                 {partnerRevealed || dailyPrompt?.is_revealed ? (
                   <p className="bubble-text partner-revealed-text">
-                    "{user2AnswerText}"
+                    "{partnerAnswerText}"
                   </p>
                 ) : (
                   <div className="locked-preview">
-                    <p className="locked-text">{partnerName} has locked in her answer!</p>
-                    <button
-                      type="button"
-                      className="btn-secondary reveal-btn"
-                      onClick={() => setPartnerRevealed(true)}
-                    >
-                      <Sparkles size={14} color="#FF758F" />
-                      <span>Reveal {partnerName}'s Answer</span>
-                    </button>
+                    <p className="locked-text">
+                      {isPartnerAnswered
+                        ? `${partnerName} has locked in their answer! 🔒`
+                        : `${partnerName} hasn't answered yet. Answers reveal together!`}
+                    </p>
+                    {isPartnerAnswered && (
+                      <button
+                        type="button"
+                        className="btn-secondary reveal-btn"
+                        onClick={() => setPartnerRevealed(true)}
+                      >
+                        <Sparkles size={14} color="#FF758F" />
+                        <span>Reveal {partnerName}'s Answer</span>
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

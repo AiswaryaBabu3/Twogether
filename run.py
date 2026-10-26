@@ -36,6 +36,21 @@ def kill_proc_tree(pid: int) -> None:
             pass
 
 
+def free_port(port: int) -> None:
+    """Frees port if an orphaned process from a previous run is still holding it."""
+    if sys.platform == "win32":
+        try:
+            cmd = f'powershell -Command "(Get-NetTCPConnection -LocalPort {port} -ErrorAction SilentlyContinue).OwningProcess"'
+            res = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+            for line in res.stdout.strip().split():
+                if line.isdigit():
+                    pid = int(line)
+                    if pid > 4:
+                        subprocess.run(["taskkill", "/F", "/PID", str(pid)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:
+            pass
+
+
 def main() -> None:
     print("=" * 64)
     print("         Twogether Full-Stack Dev Pipeline (Unified Mode)")
@@ -55,6 +70,7 @@ def main() -> None:
 
     print()
     print("[2/3] Starting Backend API on http://localhost:8000 ...")
+    free_port(8000)
     backend_cmd = [
         VENV_PYTHON,
         "-m",
@@ -73,6 +89,7 @@ def main() -> None:
 
     print()
     print("[3/3] Starting React Vite Frontend on http://localhost:5173 ...")
+    free_port(5173)
     frontend_proc = subprocess.Popen("npm run dev", cwd=FRONTEND_DIR, shell=True)
 
     print()

@@ -47,6 +47,9 @@ class Partner(Base, TimestampMixin):
     # Profile Info
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     city: Mapped[str] = mapped_column(String(100), nullable=False)
+    gender: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    age: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    dob: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     timezone: Mapped[str] = mapped_column(String(100), default="UTC", nullable=False)
     latitude: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     longitude: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)

@@ -18,7 +18,7 @@ interface ImageAdjustModalProps {
 }
 
 const VIEWPORT_SIZE = 280; // 280px x 280px crop circle viewport
-const OUTPUT_SIZE = 512; // 512px x 512px exported high-res avatar
+const OUTPUT_SIZE = 400; // 400px x 400px optimized crisp base64 avatar (~30KB)
 
 export const ImageAdjustModal: React.FC<ImageAdjustModalProps> = ({
   imageUrl,
@@ -182,7 +182,7 @@ export const ImageAdjustModal: React.FC<ImageAdjustModalProps> = ({
         drawHeight
       );
 
-      const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+      const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.88);
       onSave(croppedDataUrl);
       onClose();
     } catch (err) {

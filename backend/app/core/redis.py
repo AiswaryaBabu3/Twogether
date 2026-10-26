@@ -19,14 +19,23 @@ def get_redis_client() -> Optional[Redis]:
 
     if redis_client is None:
         logger.info(f"Connecting to Redis at {settings.REDIS_URL} with protocol {settings.REDIS_PROTOCOL}...")
-        redis_pool = ConnectionPool.from_url(
-            settings.REDIS_URL,
-            protocol=settings.REDIS_PROTOCOL,
-            socket_connect_timeout=settings.REDIS_CONNECT_TIMEOUT,
-            socket_timeout=settings.REDIS_CONNECT_TIMEOUT,
-            decode_responses=True,
-            max_connections=20
-        )
+        try:
+            redis_pool = ConnectionPool.from_url(
+                settings.REDIS_URL,
+                protocol=settings.REDIS_PROTOCOL,
+                socket_connect_timeout=settings.REDIS_CONNECT_TIMEOUT,
+                socket_timeout=settings.REDIS_CONNECT_TIMEOUT,
+                decode_responses=True,
+                max_connections=20
+            )
+        except TypeError:
+            redis_pool = ConnectionPool.from_url(
+                settings.REDIS_URL,
+                socket_connect_timeout=settings.REDIS_CONNECT_TIMEOUT,
+                socket_timeout=settings.REDIS_CONNECT_TIMEOUT,
+                decode_responses=True,
+                max_connections=20
+            )
         redis_client = Redis(connection_pool=redis_pool)
     return redis_client
 

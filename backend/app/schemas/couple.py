@@ -6,6 +6,9 @@ from pydantic import BaseModel, Field
 class PartnerBase(BaseModel):
     name: str
     city: str
+    gender: Optional[str] = None
+    age: Optional[int] = None
+    dob: Optional[str] = None
     timezone: str
     status_message: str
     status_emoji: str
@@ -14,13 +17,27 @@ class PartnerBase(BaseModel):
 
 
 class PartnerUpdate(BaseModel):
-    partner_index: int = Field(0, description="0 for user 1 (Alex), 1 for user 2 (Maya)")
+    partner_index: int = Field(0, description="0 for user 1, 1 for user 2")
     name: Optional[str] = None
     city: Optional[str] = None
+    gender: Optional[str] = None
+    age: Optional[int] = None
+    dob: Optional[str] = None
     timezone: Optional[str] = None
     status_message: Optional[str] = None
     status_emoji: Optional[str] = None
     avatar_url: Optional[str] = None
+
+
+class CoupleOnboardingRequest(BaseModel):
+    name: str
+    gender: Optional[str] = None
+    age: Optional[int] = None
+    dob: Optional[str] = None
+    city: str
+    avatar_url: Optional[str] = None
+    pairing_code: Optional[str] = Field(None, description="Invite code to connect to existing partner space")
+    partner_index: Optional[int] = Field(None, description="0 for user 1, 1 for user 2")
 
 
 class AvatarUploadRequest(BaseModel):

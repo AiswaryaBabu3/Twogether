@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   X,
   User,
@@ -12,6 +12,9 @@ import {
   Link as LinkIcon,
   Check,
   Sliders,
+  Calendar,
+  Users,
+  Copy,
 } from 'lucide-react';
 import type { CoupleData, Partner } from '../services/api';
 import { updatePartnerProfile, updateReunion } from '../services/api';
@@ -25,6 +28,13 @@ interface ProfileMenuModalProps {
 }
 
 const EMOJI_OPTIONS = ['☕', '🎧', '📚', '💖', '✈️', '🍕', '💻', '😴', '🌸', '🔥', '🌟', '🍿'];
+
+const GENDER_OPTIONS = [
+  { value: 'Female', label: 'Female 👩' },
+  { value: 'Male', label: 'Male 👨' },
+  { value: 'Non-Binary', label: 'Non-Binary 🌈' },
+  { value: 'Prefer not to say', label: 'Other ✨' },
+];
 
 const CITY_PRESETS = [
   { city: 'New York, USA', tz: 'America/New_York' },
@@ -96,13 +106,13 @@ export const ProfileMenuModal: React.FC<ProfileMenuModalProps> = ({
   const p2: Partner = coupleData.partners[1] || {
     id: 2,
     couple_id: 1,
-    name: 'Arjun',
+    name: 'Prago',
     city: 'Bengaluru, India',
     timezone: 'Asia/Kolkata',
     status_message: 'Listening to our playlist',
     status_emoji: '🎧',
     avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
-    is_online: true,
+    is_online: false,
     latitude: 12.9716,
     longitude: 77.5946,
   };
@@ -110,6 +120,9 @@ export const ProfileMenuModal: React.FC<ProfileMenuModalProps> = ({
   // Form states for Partner 1 (You)
   const [p1Name, setP1Name] = useState(p1.name);
   const [p1City, setP1City] = useState(p1.city);
+  const [p1Gender, setP1Gender] = useState(p1.gender || 'Female');
+  const [p1Dob, setP1Dob] = useState(p1.dob || '2001-08-15');
+  const [p1Age, setP1Age] = useState<number | ''>(p1.age ?? 24);
   const [p1Tz, setP1Tz] = useState(p1.timezone);
   const [p1Status, setP1Status] = useState(p1.status_message);
   const [p1Emoji, setP1Emoji] = useState(p1.status_emoji);
@@ -118,10 +131,83 @@ export const ProfileMenuModal: React.FC<ProfileMenuModalProps> = ({
   // Form states for Partner 2
   const [p2Name, setP2Name] = useState(p2.name);
   const [p2City, setP2City] = useState(p2.city);
+  const [p2Gender, setP2Gender] = useState(p2.gender || 'Male');
+  const [p2Dob, setP2Dob] = useState(p2.dob || '2000-01-04');
+  const [p2Age, setP2Age] = useState<number | ''>(p2.age ?? 26);
   const [p2Tz, setP2Tz] = useState(p2.timezone);
   const [p2Status, setP2Status] = useState(p2.status_message);
   const [p2Emoji, setP2Emoji] = useState(p2.status_emoji);
   const [p2Avatar, setP2Avatar] = useState(p2.avatar_url);
+
+  // Keep form in sync whenever coupleData updates
+  useEffect(() => {
+    if (!coupleData) return;
+    const partner1 = coupleData.partners?.[0];
+    const partner2 = coupleData.partners?.[1];
+
+    if (partner1) {
+      setP1Name(partner1.name || '');
+      setP1City(partner1.city || '');
+      setP1Gender(partner1.gender || 'Female');
+      setP1Dob(partner1.dob || '2001-08-15');
+      setP1Age(partner1.age ?? 24);
+      setP1Tz(partner1.timezone || 'Asia/Kolkata');
+      setP1Status(partner1.status_message || '');
+      setP1Emoji(partner1.status_emoji || '💻');
+      setP1Avatar(partner1.avatar_url || '');
+    }
+
+    if (partner2) {
+      setP2Name(partner2.name || '');
+      setP2City(partner2.city || '');
+      setP2Gender(partner2.gender || 'Male');
+      setP2Dob(partner2.dob || '2000-01-04');
+      setP2Age(partner2.age ?? 26);
+      setP2Tz(partner2.timezone || 'Asia/Kolkata');
+      setP2Status(partner2.status_message || '');
+      setP2Emoji(partner2.status_emoji || '🎧');
+      setP2Avatar(partner2.avatar_url || '');
+    }
+
+    setReunionTitle(coupleData.reunion_title || '');
+    setReunionCity(coupleData.reunion_city || '');
+    setReunionProgress(coupleData.reunion_progress || 0);
+    if (coupleData.reunion_date) {
+      try {
+        setReunionDate(new Date(coupleData.reunion_date).toISOString().split('T')[0]);
+      } catch {
+        // keep existing
+      }
+    }
+  }, [coupleData]);
+
+  const [copiedPairing, setCopiedPairing] = useState(false);
+
+  const handleP1DobChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setP1Dob(val);
+    if (val) {
+      const birth = new Date(val);
+      const today = new Date();
+      let calcAge = today.getFullYear() - birth.getFullYear();
+      const m = today.getMonth() - birth.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) calcAge--;
+      if (calcAge > 0 && calcAge < 120) setP1Age(calcAge);
+    }
+  };
+
+  const handleP2DobChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setP2Dob(val);
+    if (val) {
+      const birth = new Date(val);
+      const today = new Date();
+      let calcAge = today.getFullYear() - birth.getFullYear();
+      const m = today.getMonth() - birth.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) calcAge--;
+      if (calcAge > 0 && calcAge < 120) setP2Age(calcAge);
+    }
+  };
 
   // Reunion Form States
   const [reunionTitle, setReunionTitle] = useState(coupleData.reunion_title);
@@ -180,6 +266,9 @@ export const ProfileMenuModal: React.FC<ProfileMenuModalProps> = ({
             partner_index: 0,
             name: p1Name,
             city: p1City,
+            gender: p1Gender,
+            age: p1Age !== '' ? Number(p1Age) : null,
+            dob: p1Dob,
             timezone: p1Tz,
             status_message: p1Status,
             status_emoji: p1Emoji,
@@ -189,6 +278,9 @@ export const ProfileMenuModal: React.FC<ProfileMenuModalProps> = ({
             partner_index: 1,
             name: p2Name,
             city: p2City,
+            gender: p2Gender,
+            age: p2Age !== '' ? Number(p2Age) : null,
+            dob: p2Dob,
             timezone: p2Tz,
             status_message: p2Status,
             status_emoji: p2Emoji,
@@ -235,6 +327,36 @@ export const ProfileMenuModal: React.FC<ProfileMenuModalProps> = ({
           </div>
           <button type="button" className="close-modal-btn" onClick={onClose} aria-label="Close modal">
             <X size={20} />
+          </button>
+        </div>
+
+        {/* Pairing Code Banner */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: 'rgba(167, 123, 255, 0.08)',
+          border: '1px dashed rgba(167, 123, 255, 0.4)',
+          borderRadius: '12px',
+          padding: '10px 16px',
+          marginBottom: '16px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
+            <Users size={16} color="#A77BFF" />
+            <span>Couple Space Code: <strong style={{ color: '#FFB703', letterSpacing: '1px' }}>{coupleData.pairing_code}</strong></span>
+          </div>
+          <button
+            type="button"
+            className="btn-copy-code"
+            style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+            onClick={() => {
+              navigator.clipboard.writeText(coupleData.pairing_code);
+              setCopiedPairing(true);
+              setTimeout(() => setCopiedPairing(false), 2000);
+            }}
+          >
+            {copiedPairing ? <Check size={13} color="#4ADE80" /> : <Copy size={13} />}
+            <span>{copiedPairing ? 'Copied' : 'Copy'}</span>
           </button>
         </div>
 
@@ -286,6 +408,10 @@ export const ProfileMenuModal: React.FC<ProfileMenuModalProps> = ({
                     src={p1Avatar || p1.avatar_url}
                     alt={p1Name}
                     className="avatar-preview-img"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80';
+                    }}
                   />
                   <button
                     type="button"
@@ -393,6 +519,48 @@ export const ProfileMenuModal: React.FC<ProfileMenuModalProps> = ({
             </div>
 
             <div className="form-group">
+              <label className="form-label">Gender</label>
+              <div className="gender-pill-group">
+                {GENDER_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`gender-pill-btn ${p1Gender === opt.value ? 'active' : ''}`}
+                    onClick={() => setP1Gender(opt.value)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="form-grid-2">
+              <div className="form-group">
+                <label className="form-label">
+                  <Calendar size={13} style={{ display: 'inline', marginRight: 4 }} />
+                  Date of Birth
+                </label>
+                <input
+                  type="date"
+                  className="form-input"
+                  value={p1Dob}
+                  onChange={handleP1DobChange}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Age</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  min="1"
+                  max="120"
+                  value={p1Age}
+                  onChange={(e) => setP1Age(e.target.value ? Number(e.target.value) : '')}
+                />
+              </div>
+            </div>
+
+            <div className="form-group">
               <label className="form-label">Your City & Location</label>
               <input
                 type="text"
@@ -478,6 +646,10 @@ export const ProfileMenuModal: React.FC<ProfileMenuModalProps> = ({
                     src={p2Avatar || p2.avatar_url}
                     alt={p2Name}
                     className="avatar-preview-img"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80';
+                    }}
                   />
                   <button
                     type="button"
@@ -582,6 +754,48 @@ export const ProfileMenuModal: React.FC<ProfileMenuModalProps> = ({
                 onChange={(e) => setP2Name(e.target.value)}
                 placeholder="Partner's display name"
               />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Gender</label>
+              <div className="gender-pill-group">
+                {GENDER_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`gender-pill-btn ${p2Gender === opt.value ? 'active' : ''}`}
+                    onClick={() => setP2Gender(opt.value)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="form-grid-2">
+              <div className="form-group">
+                <label className="form-label">
+                  <Calendar size={13} style={{ display: 'inline', marginRight: 4 }} />
+                  Date of Birth
+                </label>
+                <input
+                  type="date"
+                  className="form-input"
+                  value={p2Dob}
+                  onChange={handleP2DobChange}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Age</label>
+                <input
+                  type="number"
+                  className="form-input"
+                  min="1"
+                  max="120"
+                  value={p2Age}
+                  onChange={(e) => setP2Age(e.target.value ? Number(e.target.value) : '')}
+                />
+              </div>
             </div>
 
             <div className="form-group">

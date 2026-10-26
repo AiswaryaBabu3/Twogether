@@ -1,6 +1,6 @@
 import math
 from datetime import datetime, timezone, timedelta
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Set
 from zoneinfo import ZoneInfo
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,6 +23,10 @@ CITY_COORDINATES = {
     "tokyo, japan": (35.6762, 139.6503, "Asia/Tokyo"),
     "mumbai, india": (19.0760, 72.8777, "Asia/Kolkata"),
     "bengaluru, india": (12.9716, 77.5946, "Asia/Kolkata"),
+    "coimbatore, india": (11.0168, 76.9558, "Asia/Kolkata"),
+    "coimbatore": (11.0168, 76.9558, "Asia/Kolkata"),
+    "chennai, india": (13.0827, 80.2707, "Asia/Kolkata"),
+    "hyderabad, india": (17.3850, 78.4867, "Asia/Kolkata"),
     "delhi, india": (28.6139, 77.2090, "Asia/Kolkata"),
     "san francisco, usa": (37.7749, -122.4194, "America/Los_Angeles"),
     "los angeles, usa": (34.0522, -118.2437, "America/Los_Angeles"),
@@ -106,44 +110,31 @@ async def get_or_create_default_couple(db: AsyncSession) -> Couple:
         db.add(couple)
         await db.flush()
 
-        # Partner 1: Alex (New York)
-        alex_lat, alex_lon, alex_tz = lookup_city_info("New York, USA")
+        # Only seed Partner 1 if couple table is empty
+        alex_lat, alex_lon, alex_tz = lookup_city_info("Coimbatore, India")
         p1 = Partner(
             couple_id=couple.id,
-            name="Alex",
-            city="New York, USA",
+            name="Aishu",
+            city="Coimbatore, India",
+            gender="Female",
+            age=23,
+            dob="2002-12-02",
             timezone=alex_tz,
             latitude=alex_lat,
             longitude=alex_lon,
-            status_message="Having morning coffee",
-            status_emoji="☕",
-            avatar_url="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=240&q=80",
+            status_message="Coding Twogether App",
+            status_emoji="💻",
+            avatar_url="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
             is_online=True
         )
-
-        # Partner 2: Maya (London)
-        maya_lat, maya_lon, maya_tz = lookup_city_info("London, UK")
-        p2 = Partner(
-            couple_id=couple.id,
-            name="Maya",
-            city="London, UK",
-            timezone=maya_tz,
-            latitude=maya_lat,
-            longitude=maya_lon,
-            status_message="Listening to our playlist",
-            status_emoji="🎧",
-            avatar_url="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=240&q=80",
-            is_online=True
-        )
-        db.add_all([p1, p2])
+        db.add(p1)
 
         # Default Daily Prompt
         prompt = DailyPrompt(
             couple_id=couple.id,
             question="If we could magically teleport together to any spot in the world for just 3 hours tonight, where would we go and what would we eat?",
             user1_answer=None,
-            user2_answer="A rooftop noodle bar in Shinjuku, Tokyo watching the rain and sharing hot gyozas under one coat! 🥟🌧️",
-            user2_answered_at=datetime.now(timezone.utc) - timedelta(hours=2),
+            user2_answer=None,
             is_revealed=False
         )
         db.add(prompt)
@@ -153,11 +144,34 @@ async def get_or_create_default_couple(db: AsyncSession) -> Couple:
         result = await db.execute(stmt)
         couple = result.scalars().first()
 
+    # Ensure couple space always has Partner 2 seeded if missing
+    if couple is not None and len(couple.partners) < 2:
+        p2_lat, p2_lon, p2_tz = lookup_city_info("Bengaluru, India")
+        p2 = Partner(
+            couple_id=couple.id,
+            name="Prago",
+            city="Bengaluru, India",
+            gender="Male",
+            age=26,
+            dob="2000-01-04",
+            timezone=p2_tz,
+            latitude=p2_lat,
+            longitude=p2_lon,
+            status_message="Listening to our playlist",
+            status_emoji="🎧",
+            avatar_url="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
+            is_online=False
+        )
+        db.add(p2)
+        await db.commit()
+        result = await db.execute(stmt)
+        couple = result.scalars().first()
+
     return couple
 
 
-def build_couple_response(couple: Couple) -> CoupleResponse:
-    """Maps Couple entity to clean API response model."""
+def build_couple_response(couple: Couple, online_partners: Optional[Set[int]] = None) -> CoupleResponse:
+    """Maps Couple entity to clean API response model with live presence."""
     partners = sorted(couple.partners, key=lambda p: p.id)
     p1 = partners[0] if len(partners) > 0 else None
     p2 = partners[1] if len(partners) > 1 else None
@@ -167,8 +181,8 @@ def build_couple_response(couple: Couple) -> CoupleResponse:
         dist = calculate_haversine_distance(p1.latitude, p1.longitude, p2.latitude, p2.longitude)
         tz_diff = calculate_timezone_diff(p1.timezone, p2.timezone, p1.name, p2.name)
     else:
-        dist = 5567
-        tz_diff = "Different time zones"
+        dist = 0
+        tz_diff = "Waiting for partner to connect"
 
     # Daily Prompt mapping
     latest_prompt = None
@@ -180,11 +194,18 @@ def build_couple_response(couple: Couple) -> CoupleResponse:
             user1_answered=bool(p.user1_answer),
             user2_answered=bool(p.user2_answer),
             user1_answer=p.user1_answer,
-            user2_answer=p.user2_answer if p.is_revealed else None,
+            user2_answer=p.user2_answer,
             is_revealed=p.is_revealed
         )
 
-    partner_responses = [PartnerResponse.model_validate(p) for p in partners]
+    partner_responses = []
+    for idx, p in enumerate(partners):
+        resp = PartnerResponse.model_validate(p)
+        if online_partners is not None:
+            resp.is_online = (idx in online_partners)
+        else:
+            resp.is_online = (idx == 0)
+        partner_responses.append(resp)
 
     return CoupleResponse(
         id=couple.id,
