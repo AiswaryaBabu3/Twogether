@@ -41,16 +41,35 @@ export interface CoupleData {
   daily_prompt: DailyPrompt | null;
 }
 
-const API_HOST = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-const isDev = typeof window !== 'undefined' && window.location.port.startsWith('517');
+export interface ChatMessage {
+  id: number;
+  couple_id: number;
+  sender_index: number;
+  sender_name: string;
+  message_type: 'text' | 'image' | 'call_log';
+  content?: string | null;
+  image_url?: string | null;
+  is_read: boolean;
+  reply_to_id?: number | null;
+  reply_to_text?: string | null;
+  reply_to_sender?: string | null;
+  reactions?: Record<string, string>;
+  is_deleted?: boolean;
+  deleted_at?: string | null;
+  created_at: string;
+}
 
-const API_BASE = isDev
-  ? `http://${API_HOST}:8000/api/couple`
-  : '/api/couple';
+const host = typeof window !== 'undefined' ? window.location.host : 'localhost:8000';
+const wsProto = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 
-const WS_BASE = isDev
-  ? `ws://${API_HOST}:8000/api/couple/ws`
-  : `ws://${typeof window !== 'undefined' ? window.location.host : 'localhost:8000'}/api/couple/ws`;
+// Proxy through Vite or same-origin backend
+const API_BASE = '/api/couple';
+const WS_BASE = `${wsProto}//${host}/api/couple/ws`;
+
+// Cross-tab broadcast channel for instant multi-tab sync
+export const coupleSyncChannel = typeof window !== 'undefined' && 'BroadcastChannel' in window
+  ? new BroadcastChannel('twogether_sync_channel')
+  : null;
 
 export async function getCoupleData(): Promise<CoupleData> {
   const res = await fetch(API_BASE);
@@ -158,11 +177,153 @@ export async function submitDailyAnswer(
     body: JSON.stringify({ partner_index: partnerIndex, answer }),
   });
   if (!res.ok) throw new Error('Failed to submit answer');
+  const updated: CoupleData = await res.json();
+  if (coupleSyncChannel) {
+    coupleSyncChannel.postMessage({ type: 'DAILY_QUESTION_ANSWERED', data: updated });
+  }
+  return updated;
+}
+
+export async function resetDailyQuestion(): Promise<CoupleData> {
+  const res = await fetch(`${API_BASE}/daily-question/reset`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  if (!res.ok) throw new Error('Failed to reset daily question');
+  const updated: CoupleData = await res.json();
+  if (coupleSyncChannel) {
+    coupleSyncChannel.postMessage({ type: 'DAILY_QUESTION_ANSWERED', data: updated });
+  }
+  return updated;
+}
+
+export async function updateDailyQuestion(question: string): Promise<CoupleData> {
+  const res = await fetch(`${API_BASE}/daily-question/update`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question }),
+  });
+  if (!res.ok) throw new Error('Failed to update daily question');
+  const updated: CoupleData = await res.json();
+  if (coupleSyncChannel) {
+    coupleSyncChannel.postMessage({ type: 'DAILY_QUESTION_ANSWERED', data: updated });
+  }
+  return updated;
+}
+
+export async function getChatMessages(limit: number = 150): Promise<ChatMessage[]> {
+  const res = await fetch(`${API_BASE}/chat/messages?limit=${limit}`);
+  if (!res.ok) throw new Error('Failed to load chat messages');
   return res.json();
 }
 
+export async function sendChatMessage(data: {
+  sender_index: number;
+  content?: string;
+  message_type?: string;
+  image_url?: string;
+  reply_to_id?: number | null;
+  reply_to_text?: string | null;
+  reply_to_sender?: string | null;
+}): Promise<ChatMessage> {
+  const res = await fetch(`${API_BASE}/chat/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to send message');
+  const msg: ChatMessage = await res.json();
+  if (coupleSyncChannel) {
+    coupleSyncChannel.postMessage({ type: 'CHAT_MESSAGE', message: msg });
+  }
+  return msg;
+}
+
+export async function sendChatPhoto(data: {
+  sender_index: number;
+  image_data: string;
+  caption?: string;
+  reply_to_id?: number | null;
+  reply_to_text?: string | null;
+  reply_to_sender?: string | null;
+}): Promise<ChatMessage> {
+  const res = await fetch(`${API_BASE}/chat/upload-photo`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to share photo');
+  const msg: ChatMessage = await res.json();
+  if (coupleSyncChannel) {
+    coupleSyncChannel.postMessage({ type: 'CHAT_MESSAGE', message: msg });
+  }
+  return msg;
+}
+
+export async function reactToChatMessage(
+  message_id: number,
+  sender_index: number,
+  emoji: string
+): Promise<ChatMessage> {
+  const res = await fetch(`${API_BASE}/chat/react`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message_id, sender_index, emoji }),
+  });
+  if (!res.ok) throw new Error('Failed to react to message');
+  const msg: ChatMessage = await res.json();
+  if (coupleSyncChannel) {
+    coupleSyncChannel.postMessage({ type: 'CHAT_MESSAGE_UPDATED', message: msg });
+  }
+  return msg;
+}
+
+export async function deleteChatMessage(
+  message_id: number,
+  sender_index: number
+): Promise<ChatMessage> {
+  const res = await fetch(`${API_BASE}/chat/delete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message_id, sender_index }),
+  });
+  if (!res.ok) throw new Error('Failed to delete message');
+  const msg: ChatMessage = await res.json();
+  if (coupleSyncChannel) {
+    coupleSyncChannel.postMessage({ type: 'CHAT_MESSAGE_UPDATED', message: msg });
+  }
+  return msg;
+}
+
+export async function markChatRead(reader_index: number): Promise<void> {
+  try {
+    await fetch(`${API_BASE}/chat/mark-read?reader_index=${reader_index}`, {
+      method: 'POST',
+    });
+    if (coupleSyncChannel) {
+      coupleSyncChannel.postMessage({ type: 'CHAT_READ', reader_index });
+    }
+  } catch (e) {
+    console.warn('Failed to mark chat as read:', e);
+  }
+}
+
+let activeWsInstance: WebSocket | null = null;
+
+export function sendWebSocketSignal(signal: any): boolean {
+  let sent = false;
+  if (activeWsInstance && activeWsInstance.readyState === WebSocket.OPEN) {
+    activeWsInstance.send(JSON.stringify(signal));
+    sent = true;
+  }
+  if (coupleSyncChannel) {
+    coupleSyncChannel.postMessage(signal);
+  }
+  return sent;
+}
+
 export function subscribeToCoupleRealtime(
-  onMessage: (event: { type: string; data?: any; sender?: string; online_partners?: number[] }) => void,
+  onMessage: (event: any) => void,
   partnerIndex: number = 0
 ): () => void {
   let ws: WebSocket | null = null;
@@ -175,6 +336,7 @@ export function subscribeToCoupleRealtime(
       ws = new WebSocket(url);
 
       ws.onopen = () => {
+        activeWsInstance = ws;
         console.log(`[WebSocket] Connected to Twogether Realtime backend as partner ${partnerIndex}.`);
         if (ws && ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ type: 'REGISTER_PARTNER', partner_index: partnerIndex }));
@@ -196,6 +358,9 @@ export function subscribeToCoupleRealtime(
       };
 
       ws.onclose = () => {
+        if (activeWsInstance === ws) {
+          activeWsInstance = null;
+        }
         clearInterval(keepAliveTimer);
         reconnectTimer = setTimeout(connect, 3000);
       };
@@ -215,6 +380,9 @@ export function subscribeToCoupleRealtime(
   return () => {
     clearInterval(keepAliveTimer);
     clearTimeout(reconnectTimer);
+    if (activeWsInstance === ws) {
+      activeWsInstance = null;
+    }
     if (ws) ws.close();
   };
 }

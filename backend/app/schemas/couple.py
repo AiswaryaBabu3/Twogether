@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict
 from pydantic import BaseModel, Field
 
 
@@ -71,6 +71,10 @@ class DailyAnswerRequest(BaseModel):
     answer: str
 
 
+class DailyQuestionUpdateRequest(BaseModel):
+    question: str
+
+
 class DailyPromptResponse(BaseModel):
     id: int
     question: str
@@ -95,3 +99,54 @@ class CoupleResponse(BaseModel):
     reunion_progress: int
     partners: List[PartnerResponse]
     daily_prompt: Optional[DailyPromptResponse] = None
+
+
+class ChatMessageResponse(BaseModel):
+    id: int
+    couple_id: int
+    sender_index: int
+    sender_name: str
+    message_type: str = "text"
+    content: Optional[str] = None
+    image_url: Optional[str] = None
+    is_read: bool = False
+    reply_to_id: Optional[int] = None
+    reply_to_text: Optional[str] = None
+    reply_to_sender: Optional[str] = None
+    reactions: Optional[Dict[str, str]] = None
+    is_deleted: bool = False
+    deleted_at: Optional[datetime] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ChatMessageCreateRequest(BaseModel):
+    sender_index: int = Field(0, description="0 for user 1, 1 for user 2")
+    content: Optional[str] = None
+    message_type: str = Field("text", description="text, image, call_log")
+    image_url: Optional[str] = None
+    reply_to_id: Optional[int] = None
+    reply_to_text: Optional[str] = None
+    reply_to_sender: Optional[str] = None
+
+
+class ChatPhotoUploadRequest(BaseModel):
+    sender_index: int = Field(0, description="0 for user 1, 1 for user 2")
+    image_data: str = Field(..., description="Base64 Data URI of photo")
+    caption: Optional[str] = None
+    reply_to_id: Optional[int] = None
+    reply_to_text: Optional[str] = None
+    reply_to_sender: Optional[str] = None
+
+
+class ChatReactionRequest(BaseModel):
+    message_id: int
+    sender_index: int
+    emoji: str  # e.g. "❤️", or empty "" to remove reaction
+
+
+class ChatDeleteRequest(BaseModel):
+    message_id: int
+    sender_index: int

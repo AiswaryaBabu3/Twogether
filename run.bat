@@ -52,14 +52,14 @@ echo [2/3] Launching FastAPI Backend on http://localhost:8000 ...
 start "Twogether - Backend API [Port 8000]" cmd /k "cd /d %BACKEND_DIR% && .venv\Scripts\uvicorn.exe app.main:app --reload --host 0.0.0.0 --port 8000"
 
 :: Step 3: Start Frontend
-echo [3/3] Launching React Vite Frontend on http://localhost:5173 ...
-start "Twogether - Frontend [Port 5173]" cmd /k "cd /d %FRONTEND_DIR% && npm run dev"
+echo [3/3] Launching React Vite Frontend...
+start "Twogether - Frontend" cmd /k "cd /d %FRONTEND_DIR% && npm run dev"
 
 echo.
 echo ================================================================
 echo   All pipeline services started successfully!
 echo.
-echo   * Frontend Web App:   http://localhost:5173
+echo   * Frontend Web App:   http://localhost:5173 (or next port if 5173 is busy)
 echo   * Backend API:        http://localhost:8000
 echo   * API Swagger Docs:   http://localhost:8000/docs
 echo   * Health Check:       http://localhost:8000/health

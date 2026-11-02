@@ -10,11 +10,16 @@ import type { FloatingHeartItem } from './components/FloatingHearts';
 import { MobileNav } from './components/MobileNav';
 import { ProfileMenuModal } from './components/ProfileMenuModal';
 import { CoupleOnboardingModal } from './components/CoupleOnboardingModal';
+import { PrivateChatModal } from './components/PrivateChatModal';
+import { VideoCallModal } from './components/VideoCallModal';
+import { MessageCircle, PhoneCall, PhoneOff, Video } from 'lucide-react';
 import type { CoupleData } from './services/api';
 import {
   getCoupleData,
   sendLiveHeartbeat,
   subscribeToCoupleRealtime,
+  coupleSyncChannel,
+  sendWebSocketSignal,
 } from './services/api';
 import './App.css';
 
@@ -25,11 +30,34 @@ export function App() {
   const [lastHeartbeat, setLastHeartbeat] = useState<string>('Just now');
   const [floatingHearts, setFloatingHearts] = useState<FloatingHeartItem[]>([]);
 
+  // Private Chat & WebRTC Video Call States
+  const [showChatModal, setShowChatModal] = useState<boolean>(false);
+  const [showVideoCallModal, setShowVideoCallModal] = useState<boolean>(false);
+  const [unreadChatCount, setUnreadChatCount] = useState<number>(0);
+  const [incomingCallOffer, setIncomingCallOffer] = useState<any>(null);
+  const [isCallerMode, setIsCallerMode] = useState<boolean>(true);
+  const [incomingCallerName, setIncomingCallerName] = useState<string>('');
+  const [showIncomingCallBanner, setShowIncomingCallBanner] = useState<boolean>(false);
+
   // Couple Data from real backend
   const [coupleData, setCoupleData] = useState<CoupleData | null>(null);
 
   // Active Partner Perspective (0 = Partner 1 e.g. Aishu, 1 = Partner 2 e.g. Prago)
   const [activePartnerIndex, setActivePartnerIndex] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const pParam = params.get('partner') || params.get('user');
+      if (pParam) {
+        if (pParam.toLowerCase() === 'aishu' || pParam === '0') {
+          localStorage.setItem('twogether_partner_index', '0');
+          return 0;
+        }
+        if (pParam.toLowerCase() === 'prago' || pParam === '1') {
+          localStorage.setItem('twogether_partner_index', '1');
+          return 1;
+        }
+      }
+    }
     const saved = localStorage.getItem('twogether_partner_index');
     return saved !== null ? Number(saved) : 0;
   });
@@ -135,7 +163,7 @@ export function App() {
     loadCouple();
     checkBackendHealth();
 
-    // Subscribe to real-time WebSocket events from FastAPI backend
+    // 1. Subscribe to real-time WebSocket events from FastAPI backend
     const unsubscribe = subscribeToCoupleRealtime((event) => {
       if (
         event.type === 'COUPLE_UPDATED' ||
@@ -159,13 +187,83 @@ export function App() {
         setHeartCount((c) => c + 1);
         setLastHeartbeat(`by ${event.sender || 'Partner'} just now`);
         triggerHearts(6);
+      } else if (event.type === 'CHAT_MESSAGE' || event.type === 'CHAT_MESSAGE_UPDATED') {
+        window.dispatchEvent(new CustomEvent('chat_event', { detail: event }));
+        if (event.type === 'CHAT_MESSAGE' && event.message && event.message.sender_index !== activePartnerIndex) {
+          setUnreadChatCount((prev) => (showChatModal ? 0 : prev + 1));
+        }
+      } else if (event.type === 'CHAT_READ') {
+        window.dispatchEvent(new CustomEvent('chat_event', { detail: event }));
+      } else if (event.type === 'CALL_RINGING' || event.type === 'CALL_OFFER') {
+        if (event.sender_index !== activePartnerIndex) {
+          setIncomingCallerName(event.caller_name || 'Your Partner');
+          if (event.sdp) setIncomingCallOffer(event.sdp);
+          setIsCallerMode(false);
+          setShowIncomingCallBanner(true);
+          window.dispatchEvent(new CustomEvent('webrtc_signal', { detail: event }));
+        }
+      } else if (
+        event.type === 'CALL_ANSWER' ||
+        event.type === 'ICE_CANDIDATE' ||
+        event.type === 'CALL_REJECTED' ||
+        event.type === 'CALL_ENDED'
+      ) {
+        if (event.type === 'CALL_REJECTED' || event.type === 'CALL_ENDED') {
+          setShowIncomingCallBanner(false);
+        }
+        window.dispatchEvent(new CustomEvent('webrtc_signal', { detail: event }));
       }
     }, activePartnerIndex);
 
-    const interval = setInterval(checkBackendHealth, 30000);
+    // 2. Cross-tab sync channel (immediate sync when partner submits in another browser tab)
+    const handleChannelMessage = (ev: MessageEvent) => {
+      if (ev.data?.type === 'DAILY_QUESTION_ANSWERED' && ev.data?.data) {
+        setCoupleData(ev.data.data);
+      } else if (ev.data?.type === 'CHAT_MESSAGE' || ev.data?.type === 'CHAT_MESSAGE_UPDATED') {
+        window.dispatchEvent(new CustomEvent('chat_event', { detail: ev.data }));
+        if (ev.data?.type === 'CHAT_MESSAGE' && ev.data.message && ev.data.message.sender_index !== activePartnerIndex) {
+          setUnreadChatCount((prev) => (showChatModal ? 0 : prev + 1));
+        }
+      } else if (ev.data?.type === 'CHAT_READ') {
+        window.dispatchEvent(new CustomEvent('chat_event', { detail: ev.data }));
+      } else if (ev.data?.type?.startsWith('CALL_') || ev.data?.type === 'ICE_CANDIDATE') {
+        if (ev.data.sender_index !== activePartnerIndex) {
+          if (ev.data.type === 'CALL_RINGING' || ev.data.type === 'CALL_OFFER') {
+            setIncomingCallerName(ev.data.caller_name || 'Your Partner');
+            if (ev.data.sdp) setIncomingCallOffer(ev.data.sdp);
+            setIsCallerMode(false);
+            setShowIncomingCallBanner(true);
+          } else if (ev.data.type === 'CALL_REJECTED' || ev.data.type === 'CALL_ENDED') {
+            setShowIncomingCallBanner(false);
+          }
+          window.dispatchEvent(new CustomEvent('webrtc_signal', { detail: ev.data }));
+        }
+      } else {
+        loadCouple();
+      }
+    };
+    coupleSyncChannel?.addEventListener('message', handleChannelMessage);
+
+    // 3. Sync on tab focus / visibility
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        loadCouple();
+      }
+    };
+    window.addEventListener('focus', handleVisibility);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    // 4. Background polling fallback (every 4 seconds for couple data, 30s for health)
+    const couplePollTimer = setInterval(loadCouple, 4000);
+    const healthPollTimer = setInterval(checkBackendHealth, 30000);
+
     return () => {
       unsubscribe();
-      clearInterval(interval);
+      coupleSyncChannel?.removeEventListener('message', handleChannelMessage);
+      window.removeEventListener('focus', handleVisibility);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      clearInterval(couplePollTimer);
+      clearInterval(healthPollTimer);
     };
   }, [loadCouple, checkBackendHealth, triggerHearts, activePartnerIndex]);
 
@@ -175,16 +273,6 @@ export function App() {
 
   const currentUserName = currentPartner?.name || (activePartnerIndex === 0 ? 'Aishu' : 'Prago');
   const otherPartnerName = otherPartner?.name || (activePartnerIndex === 0 ? 'Prago' : 'Aishu');
-
-  const handleSwitchIdentity = () => {
-    const next = activePartnerIndex === 0 ? 1 : 0;
-    setActivePartnerIndex(next);
-    localStorage.setItem('twogether_partner_index', String(next));
-    const nextPartner = coupleData?.partners?.[next];
-    if (nextPartner) {
-      localStorage.setItem('twogether_partner_name', nextPartner.name);
-    }
-  };
 
   const handleSendHeart = async () => {
     setHeartCount((c) => c + 1);
@@ -271,9 +359,13 @@ export function App() {
         heartCount={heartCount}
         coupleData={coupleData}
         activePartnerIndex={activePartnerIndex}
-        onSwitchIdentity={handleSwitchIdentity}
         onOpenProfileMenu={() => handleOpenEdit('user')}
         onOpenOnboarding={() => setShowOnboardingModal(true)}
+        onOpenChat={() => {
+          setShowChatModal(true);
+          setUnreadChatCount(0);
+        }}
+        unreadChatCount={unreadChatCount}
       />
 
       {/* Main Viewport Container */}
@@ -295,6 +387,143 @@ export function App() {
           renderDashboardSections()
         )}
       </main>
+
+      {/* Floating Action Button for Twogether Couple Chat */}
+      <button
+        type="button"
+        onClick={() => {
+          setShowChatModal((prev) => !prev);
+          setUnreadChatCount(0);
+        }}
+        style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          zIndex: 999,
+          padding: '12px 22px',
+          borderRadius: '30px',
+          background: 'linear-gradient(135deg, #FF4D6D 0%, #8A4FFF 100%)',
+          color: '#ffffff',
+          fontWeight: 700,
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          boxShadow: '0 8px 28px rgba(255, 77, 109, 0.45), 0 0 16px rgba(138, 79, 255, 0.25)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          cursor: 'pointer',
+          transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s',
+        }}
+        title="Open Private Couple Chat & Video Call"
+      >
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <MessageCircle size={22} />
+          {unreadChatCount > 0 && (
+            <span
+              style={{
+                position: 'absolute',
+                top: '-8px',
+                right: '-10px',
+                minWidth: '20px',
+                height: '20px',
+                padding: '0 5px',
+                backgroundColor: '#ffffff',
+                color: '#FF4D6D',
+                borderRadius: '10px',
+                fontSize: '11px',
+                fontWeight: 900,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+              }}
+            >
+              {unreadChatCount}
+            </span>
+          )}
+        </div>
+        <span style={{ fontSize: '14.5px', letterSpacing: '0.3px', fontFamily: 'var(--font-heading, inherit)' }}>
+          Private Chat
+        </span>
+      </button>
+
+      {/* Incoming Video Call Banner / Toast */}
+      {showIncomingCallBanner && !showVideoCallModal && (
+        <div className="tw-incoming-toast">
+          <div className="tw-incoming-info">
+            <div className="tw-incoming-icon">
+              <Video size={22} />
+            </div>
+            <div>
+              <div className="tw-incoming-name">{incomingCallerName} ❤️</div>
+              <div className="tw-incoming-desc">Incoming video call...</div>
+            </div>
+          </div>
+
+          <div className="tw-incoming-actions">
+            <button
+              type="button"
+              onClick={() => {
+                sendWebSocketSignal({
+                  type: 'CALL_REJECTED',
+                  sender_index: activePartnerIndex,
+                  target_index: activePartnerIndex === 1 ? 0 : 1,
+                });
+                setShowIncomingCallBanner(false);
+              }}
+              className="tw-incoming-decline-btn"
+              title="Decline"
+            >
+              <PhoneOff size={18} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowIncomingCallBanner(false);
+                setIsCallerMode(false);
+                setShowVideoCallModal(true);
+              }}
+              className="tw-incoming-accept-btn"
+              title="Answer Call"
+            >
+              <PhoneCall size={16} />
+              <span>Answer</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Private Chat Modal */}
+      <PrivateChatModal
+        isOpen={showChatModal}
+        onClose={() => setShowChatModal(false)}
+        coupleData={coupleData}
+        activePartnerIndex={activePartnerIndex}
+        onStartVideoCall={() => {
+          setIsCallerMode(true);
+          setIncomingCallOffer(null);
+          setShowVideoCallModal(true);
+        }}
+        onNewMessageReceived={() => {
+          if (!showChatModal) {
+            setUnreadChatCount((c) => c + 1);
+          }
+        }}
+      />
+
+      {/* WebRTC Video Call Modal */}
+      <VideoCallModal
+        isOpen={showVideoCallModal}
+        onClose={() => {
+          setShowVideoCallModal(false);
+          setShowIncomingCallBanner(false);
+          setIncomingCallOffer(null);
+        }}
+        coupleData={coupleData}
+        activePartnerIndex={activePartnerIndex}
+        isCaller={isCallerMode}
+        incomingOffer={incomingCallOffer}
+      />
 
       {/* Mobile Bottom Navigation (shown on native mobile viewports) */}
       <MobileNav

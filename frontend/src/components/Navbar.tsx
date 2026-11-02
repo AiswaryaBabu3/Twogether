@@ -4,9 +4,9 @@ import {
   Smartphone,
   MonitorSmartphone,
   Sparkles,
-  UserCheck,
-  RefreshCw,
   Users,
+  MessageCircle,
+  UserCheck,
 } from 'lucide-react';
 import type { CoupleData } from '../services/api';
 
@@ -19,9 +19,10 @@ interface NavbarProps {
   heartCount: number;
   coupleData: CoupleData | null;
   activePartnerIndex: number;
-  onSwitchIdentity: () => void;
   onOpenProfileMenu: () => void;
   onOpenOnboarding: () => void;
+  onOpenChat: () => void;
+  unreadChatCount?: number;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -32,22 +33,17 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSendHeart,
   heartCount,
   coupleData,
-  activePartnerIndex,
-  onSwitchIdentity,
+  activePartnerIndex: _activePartnerIndex,
   onOpenProfileMenu,
   onOpenOnboarding,
+  onOpenChat,
+  unreadChatCount = 0,
 }) => {
   const p1 = coupleData?.partners?.[0];
   const p2 = coupleData?.partners?.[1];
 
   const p1Name = p1?.name || 'Aishu';
   const p2Name = p2?.name || 'Prago';
-
-  const currentUser = activePartnerIndex === 1 ? p2 : p1;
-  const otherUser = activePartnerIndex === 1 ? p1 : p2;
-
-  const currentName = currentUser?.name || (activePartnerIndex === 1 ? p2Name : p1Name);
-  const otherName = otherUser?.name || (activePartnerIndex === 1 ? p1Name : p2Name);
 
   return (
     <header className="navbar-container">
@@ -95,28 +91,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Actions & Health Telemetry */}
         <div className="nav-actions">
-          {/* Active Identity Switcher */}
-          <div className="identity-switcher-pill" title="Current active user perspective on this device">
-            {currentUser?.avatar_url && (
-              <img
-                src={currentUser.avatar_url}
-                alt={currentName}
-                className="identity-avatar-tiny"
-              />
-            )}
-            <span className="identity-name-text">{currentName}</span>
-            <span className="identity-badge-you">You</span>
-            <button
-              type="button"
-              className="btn-switch-identity"
-              onClick={onSwitchIdentity}
-              title={`Switch perspective to ${otherName}`}
-            >
-              <RefreshCw size={11} />
-              <span>Switch to {otherName}</span>
-            </button>
-          </div>
-
           {/* Couple Pairing / Setup Button */}
           <button
             type="button"
@@ -150,6 +124,40 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </span>
           </div>
+
+          {/* Private Chat & Video Call Trigger */}
+          <button
+            type="button"
+            className="btn-secondary chat-menu-btn relative"
+            onClick={onOpenChat}
+            title="Private couple chat, photo sharing & video call"
+          >
+            <MessageCircle size={16} color="#FF4D6D" />
+            <span className="profile-btn-text">Chat & Call</span>
+            {unreadChatCount > 0 && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '-6px',
+                  right: '-6px',
+                  minWidth: '18px',
+                  height: '18px',
+                  borderRadius: '999px',
+                  backgroundColor: '#FF4D6D',
+                  color: 'white',
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 4px',
+                  boxShadow: '0 2px 5px rgba(255, 77, 109, 0.5)',
+                }}
+              >
+                {unreadChatCount}
+              </span>
+            )}
+          </button>
 
           {/* Profile Menu Trigger */}
           <button

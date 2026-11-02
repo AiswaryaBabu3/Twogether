@@ -63,14 +63,19 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", "`$host.UI.RawUI.W
 # ------------------------------------------------------------------------------
 # 3. Launch Frontend (Vite)
 # ------------------------------------------------------------------------------
-Write-Host "[3/3] Launching React Vite Frontend on http://localhost:5173 ..." -ForegroundColor Yellow
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "`$host.UI.RawUI.WindowTitle = 'Twogether - Frontend [Port 5173]'; Set-Location '$frontendDir'; npm run dev"
+$port5173InUse = Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue
+if ($port5173InUse) {
+    Write-Host "[3/3] Port 5173 is busy. Vite will automatically launch on the next available port..." -ForegroundColor Yellow
+} else {
+    Write-Host "[3/3] Launching React Vite Frontend on http://localhost:5173 ..." -ForegroundColor Yellow
+}
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "`$host.UI.RawUI.WindowTitle = 'Twogether - Frontend'; Set-Location '$frontendDir'; npm run dev"
 
 Write-Host ""
 Write-Host "================================================================" -ForegroundColor Green
 Write-Host "  Pipeline execution complete! Both services are now running.   " -ForegroundColor Green
 Write-Host ""
-Write-Host "  * Frontend UI:       http://localhost:5173" -ForegroundColor White
+Write-Host "  * Frontend UI:       http://localhost:5173 (or next port if 5173 is busy)" -ForegroundColor White
 Write-Host "  * Backend API:      http://localhost:8000" -ForegroundColor White
 Write-Host "  * API Swagger Docs: http://localhost:8000/docs" -ForegroundColor White
 Write-Host "  * Health Check:     http://localhost:8000/health" -ForegroundColor White

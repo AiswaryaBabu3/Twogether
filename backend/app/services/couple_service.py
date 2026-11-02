@@ -188,6 +188,7 @@ def build_couple_response(couple: Couple, online_partners: Optional[Set[int]] = 
     latest_prompt = None
     if couple.daily_prompts:
         p = sorted(couple.daily_prompts, key=lambda x: x.id, reverse=True)[0]
+        is_both = bool(p.user1_answer and p.user2_answer)
         latest_prompt = DailyPromptResponse(
             id=p.id,
             question=p.question,
@@ -195,7 +196,7 @@ def build_couple_response(couple: Couple, online_partners: Optional[Set[int]] = 
             user2_answered=bool(p.user2_answer),
             user1_answer=p.user1_answer,
             user2_answer=p.user2_answer,
-            is_revealed=p.is_revealed
+            is_revealed=bool(p.is_revealed or is_both)
         )
 
     partner_responses = []

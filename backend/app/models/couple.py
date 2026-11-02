@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from typing import Optional, List
-from sqlalchemy import String, Integer, Float, DateTime, Boolean, ForeignKey, Text, func
+from sqlalchemy import String, Integer, Float, DateTime, Boolean, ForeignKey, Text, JSON, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 from app.models.base import TimestampMixin
@@ -35,6 +35,7 @@ class Couple(Base, TimestampMixin):
     # Relationships
     partners: Mapped[List["Partner"]] = relationship("Partner", back_populates="couple", cascade="all, delete-orphan")
     daily_prompts: Mapped[List["DailyPrompt"]] = relationship("DailyPrompt", back_populates="couple", cascade="all, delete-orphan")
+    chat_messages: Mapped[List["ChatMessage"]] = relationship("ChatMessage", back_populates="couple", cascade="all, delete-orphan", order_by="ChatMessage.id")
 
 
 class Partner(Base, TimestampMixin):
@@ -78,3 +79,31 @@ class DailyPrompt(Base, TimestampMixin):
     is_revealed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     couple: Mapped["Couple"] = relationship("Couple", back_populates="daily_prompts")
+ 
+ 
+class ChatMessage(Base, TimestampMixin):
+    """Private message, photo, or call log between couple partners."""
+    __tablename__ = "chat_messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    couple_id: Mapped[int] = mapped_column(ForeignKey("couples.id", ondelete="CASCADE"), nullable=False, index=True)
+    sender_index: Mapped[int] = mapped_column(Integer, nullable=False)  # 0 for Aishu, 1 for Prago
+    sender_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    message_type: Mapped[str] = mapped_column(String(20), default="text", nullable=False)  # "text", "image", "call_log"
+    content: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    image_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    # Reply & Quote support
+    reply_to_id: Mapped[Optional[int]] = mapped_column(ForeignKey("chat_messages.id", ondelete="SET NULL"), nullable=True)
+    reply_to_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    reply_to_sender: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+
+    # Emoji reactions mapping: e.g. {"0": "❤️", "1": "🔥"}
+    reactions: Mapped[Optional[dict]] = mapped_column(JSON, default=dict, nullable=True)
+
+    # Soft Delete & Unsend
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    couple: Mapped["Couple"] = relationship("Couple", back_populates="chat_messages")

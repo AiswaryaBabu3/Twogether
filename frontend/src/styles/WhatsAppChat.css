@@ -1,0 +1,1410 @@
+/* ==============================================================================
+   Twogether Private Couple Chat & Video Call Styling
+   Bespoke Romantic Glassmorphism Design for Aishu & Prago
+   ============================================================================== */
+
+/* --- Floating Chatbot Overlay Container --- */
+.tw-chat-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 24px;
+}
+
+@media (max-width: 768px) {
+  .tw-chat-overlay {
+    padding: 0;
+    align-items: stretch;
+    justify-content: stretch;
+  }
+}
+
+/* --- Main Chat Window --- */
+.tw-chat-window {
+  pointer-events: auto;
+  width: 440px;
+  max-width: 100%;
+  height: 680px;
+  max-height: calc(100vh - 48px);
+  background: rgba(14, 16, 26, 0.94);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border-radius: 28px;
+  border: 1px solid rgba(255, 77, 109, 0.22);
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.8),
+    0 0 32px rgba(255, 77, 109, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: twChatSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: bottom right;
+}
+
+.tw-chat-window.fullscreen {
+  position: fixed;
+  inset: 20px;
+  width: auto;
+  height: auto;
+  max-height: none;
+  border-radius: 24px;
+  z-index: 1001;
+}
+
+@media (max-width: 768px) {
+  .tw-chat-window {
+    width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+    border: none;
+  }
+}
+
+@keyframes twChatSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(28px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* --- Header Bar --- */
+.tw-chat-header {
+  background: linear-gradient(
+    180deg,
+    rgba(25, 28, 44, 0.95) 0%,
+    rgba(18, 20, 34, 0.9) 100%
+  );
+  height: 70px;
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.tw-chat-header-glow {
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #ff4d6d, #8a4fff, transparent);
+  opacity: 0.8;
+}
+
+.tw-header-left {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+
+.tw-avatar-wrap {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.tw-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid transparent;
+  background: linear-gradient(#1a1d2e, #1a1d2e) padding-box,
+    linear-gradient(135deg, #ff4d6d, #8a4fff) border-box;
+  box-shadow: 0 4px 12px rgba(255, 77, 109, 0.25);
+}
+
+.tw-online-pulse {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  width: 12px;
+  height: 12px;
+  background-color: #10b981;
+  border: 2px solid #121422;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #10b981;
+  animation: twPulseBeacon 2s infinite;
+}
+
+@keyframes twPulseBeacon {
+  0% { transform: scale(0.95); opacity: 0.9; }
+  50% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.9; }
+}
+
+.tw-user-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tw-user-name {
+  font-family: var(--font-heading, 'Outfit', sans-serif);
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tw-heart-icon {
+  color: #ff4d6d;
+  fill: #ff4d6d;
+  filter: drop-shadow(0 0 6px rgba(255, 77, 109, 0.6));
+}
+
+.tw-user-subtitle {
+  font-size: 12px;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tw-user-subtitle.online {
+  color: #34d399;
+  font-weight: 500;
+}
+
+.tw-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Quick Identity Toggle inside Chat */
+.tw-chat-identity-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 77, 109, 0.35);
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 18px;
+  font-size: 11.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.tw-chat-identity-btn:hover {
+  background: rgba(255, 77, 109, 0.22);
+  border-color: rgba(255, 77, 109, 0.6);
+  transform: translateY(-1px) scale(1.04);
+}
+
+.tw-identity-pill-tag {
+  color: #fbcfe8;
+}
+
+.tw-swap-icon {
+  color: #ff4d6d;
+}
+
+/* Video Call Pill Button */
+.tw-video-btn {
+  background: linear-gradient(135deg, #ff4d6d 0%, #8a4fff 100%);
+  color: #ffffff;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(255, 77, 109, 0.4);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s;
+}
+
+.tw-video-btn:hover {
+  transform: translateY(-1px) scale(1.04);
+  box-shadow: 0 6px 20px rgba(255, 77, 109, 0.55);
+}
+
+.tw-video-btn:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.tw-icon-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.tw-icon-btn:hover {
+  background: rgba(255, 77, 109, 0.15);
+  border-color: rgba(255, 77, 109, 0.35);
+  color: #ffffff;
+  transform: scale(1.06);
+}
+
+/* --- Chat Canvas / Body --- */
+.tw-chat-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background:
+    radial-gradient(circle at 85% 15%, rgba(138, 79, 255, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 15% 85%, rgba(255, 77, 109, 0.07) 0%, transparent 45%),
+    linear-gradient(180deg, #0b0d17 0%, #0e101c 100%);
+}
+
+/* Privacy & Encryption Banner */
+.tw-privacy-banner {
+  background: rgba(255, 77, 109, 0.07);
+  border: 1px solid rgba(255, 77, 109, 0.2);
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-size: 11.5px;
+  color: #fbcfe8;
+  text-align: center;
+  margin: 4px auto 10px;
+  max-width: 92%;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* Date Separator Pill */
+.tw-date-pill-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 6px 0;
+}
+
+.tw-date-pill {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: #ff9eaa;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+/* Message Rows */
+.tw-msg-row {
+  display: flex;
+  width: 100%;
+}
+
+.tw-msg-row.outgoing {
+  justify-content: flex-end;
+}
+
+.tw-msg-row.incoming {
+  justify-content: flex-start;
+}
+
+/* Bubbles */
+.tw-msg-bubble {
+  position: relative;
+  max-width: 82%;
+  padding: 10px 14px 8px 14px;
+  font-size: 14.5px;
+  line-height: 20px;
+  word-break: break-word;
+  transition: transform 0.15s;
+}
+
+/* Outgoing Bubble (Me) - Romantic Gradient */
+.tw-msg-bubble.outgoing {
+  background: linear-gradient(135deg, #ff4d6d 0%, #e63956 100%);
+  color: #ffffff;
+  border-radius: 20px 20px 4px 20px;
+  box-shadow:
+    0 6px 18px rgba(255, 77, 109, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Incoming Bubble (Partner) - Sleek Glass Card */
+.tw-msg-bubble.incoming {
+  background: rgba(28, 32, 50, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f1f5f9;
+  border-radius: 20px 20px 20px 4px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.tw-msg-text {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+/* Photo Attachment in Bubble */
+.tw-bubble-photo-box {
+  margin: -4px -6px 8px -6px;
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.tw-bubble-photo {
+  display: block;
+  width: 100%;
+  max-height: 280px;
+  object-fit: cover;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tw-bubble-photo:hover {
+  transform: scale(1.03);
+}
+
+.tw-photo-zoom-tag {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #ffffff;
+  border-radius: 20px;
+  padding: 4px 8px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.tw-photo-caption {
+  font-size: 13.5px;
+  margin-top: 4px;
+  line-height: 18px;
+}
+
+/* Bubble Metadata (Time & Ticks) */
+.tw-bubble-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 4px;
+  margin-left: 14px;
+  float: right;
+}
+
+.tw-bubble-time {
+  font-size: 10.5px;
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
+}
+
+.tw-msg-bubble.outgoing .tw-bubble-time {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.tw-msg-bubble.incoming .tw-bubble-time {
+  color: #94a3b8;
+}
+
+.tw-check-icon {
+  display: inline-flex;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.tw-check-icon.read {
+  color: #ffffff; /* Crisp white read double ticks */
+}
+
+/* Call Log Badge */
+.tw-call-log-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(138, 79, 255, 0.12);
+  border: 1px solid rgba(138, 79, 255, 0.28);
+  border-radius: 14px;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  color: #e9d5ff;
+  margin: 4px auto;
+  box-shadow: 0 4px 14px rgba(138, 79, 255, 0.15);
+}
+
+.tw-call-log-badge svg {
+  color: #c084fc;
+}
+
+/* ==============================================================================
+   Chat Message Action Bar, Reactions, Quoted Replies, and Soft Delete
+   ============================================================================== */
+
+.tw-msg-row {
+  position: relative;
+  display: flex;
+  margin-bottom: 14px;
+  width: 100%;
+}
+
+.tw-msg-row.outgoing {
+  justify-content: flex-end;
+}
+
+.tw-msg-row.incoming {
+  justify-content: flex-start;
+}
+
+.tw-msg-container {
+  position: relative;
+  max-width: 82%;
+  display: flex;
+  flex-direction: column;
+}
+
+.tw-msg-row.outgoing .tw-msg-container {
+  align-items: flex-end;
+}
+
+.tw-msg-row.incoming .tw-msg-container {
+  align-items: flex-start;
+}
+
+/* Floating Actions Bar on Message Hover */
+.tw-msg-actions-bar {
+  position: absolute;
+  top: -34px;
+  display: none;
+  align-items: center;
+  gap: 3px;
+  background: rgba(18, 20, 32, 0.95);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 77, 109, 0.35);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7);
+  border-radius: 20px;
+  padding: 3px 6px;
+  z-index: 50;
+  animation: twFadeIn 0.15s ease;
+}
+
+.tw-msg-container:hover .tw-msg-actions-bar,
+.tw-msg-actions-bar:hover {
+  display: flex;
+}
+
+.tw-msg-row.outgoing .tw-msg-actions-bar {
+  right: 4px;
+}
+
+.tw-msg-row.incoming .tw-msg-actions-bar {
+  left: 4px;
+}
+
+.tw-action-btn {
+  background: transparent;
+  border: none;
+  color: #cbd5e1;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 13px;
+}
+
+.tw-action-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ff4d6d;
+  transform: scale(1.15);
+}
+
+.tw-action-btn.delete:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.2);
+}
+
+/* Mini reaction popover bar */
+.tw-mini-reactions-strip {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 4px;
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  margin-right: 2px;
+}
+
+.tw-reaction-emoji-btn {
+  background: transparent;
+  border: none;
+  font-size: 15px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0;
+}
+
+.tw-reaction-emoji-btn:hover {
+  transform: scale(1.35);
+}
+
+/* Reaction Badges attached to bubble */
+.tw-reactions-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: -6px;
+  z-index: 10;
+  padding: 0 4px;
+}
+
+.tw-msg-row.outgoing .tw-reactions-wrap {
+  justify-content: flex-end;
+}
+
+.tw-reaction-badge {
+  background: rgba(18, 20, 32, 0.95);
+  border: 1px solid rgba(255, 77, 109, 0.35);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 12px;
+  padding: 2px 7px;
+  font-size: 11.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  transition: transform 0.15s, border-color 0.15s;
+  color: #f1f5f9;
+}
+
+.tw-reaction-badge:hover {
+  transform: scale(1.1);
+  border-color: #ff4d6d;
+}
+
+.tw-reaction-badge.mine {
+  background: rgba(255, 77, 109, 0.22);
+  border-color: #ff4d6d;
+}
+
+/* Quoted Reply inside Bubble */
+.tw-bubble-reply-quote {
+  background: rgba(0, 0, 0, 0.25);
+  border-left: 3px solid #ff758f;
+  border-radius: 8px;
+  padding: 5px 9px;
+  margin-bottom: 7px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.tw-msg-bubble.outgoing .tw-bubble-reply-quote {
+  background: rgba(0, 0, 0, 0.2);
+  border-left-color: #ffffff;
+}
+
+.tw-msg-bubble.incoming .tw-bubble-reply-quote {
+  background: rgba(255, 255, 255, 0.06);
+  border-left-color: #ff4d6d;
+}
+
+.tw-bubble-reply-quote:hover {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.tw-quote-sender {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #ff9eaa;
+  margin-bottom: 2px;
+}
+
+.tw-msg-bubble.outgoing .tw-quote-sender {
+  color: #ffe4e6;
+}
+
+.tw-quote-text {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+
+/* Replying Preview Banner above Chat Input */
+.tw-replying-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(24, 26, 42, 0.98);
+  border-top: 1px solid rgba(255, 77, 109, 0.25);
+  border-left: 4px solid #ff4d6d;
+  padding: 8px 14px;
+  animation: twFadeIn 0.2s ease;
+}
+
+.tw-replying-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.tw-replying-header {
+  font-size: 11px;
+  font-weight: 700;
+  color: #ff758f;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.tw-replying-snippet {
+  font-size: 12.5px;
+  color: #cbd5e1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+.tw-replying-cancel-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.tw-replying-cancel-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Soft Deleted / Unsent Message */
+.tw-msg-bubble.deleted {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px dashed rgba(255, 255, 255, 0.18) !important;
+  box-shadow: none !important;
+  color: #64748b !important;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+}
+
+.tw-deleted-icon {
+  opacity: 0.6;
+}
+
+/* --- Unsend / Delete Confirmation Modal --- */
+.tw-confirm-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 300;
+  background: rgba(7, 8, 15, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: twFadeIn 0.2s ease;
+}
+
+.tw-confirm-card {
+  width: 100%;
+  max-width: 320px;
+  background: #141624;
+  border: 1px solid rgba(255, 77, 109, 0.35);
+  border-radius: 24px;
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.8),
+    0 0 30px rgba(255, 77, 109, 0.15);
+  padding: 24px 20px 20px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: twZoomIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes twZoomIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.tw-confirm-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ef4444;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.2);
+}
+
+.tw-confirm-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 8px;
+}
+
+.tw-confirm-desc {
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.tw-confirm-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.tw-confirm-btn-cancel {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tw-confirm-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.tw-confirm-btn-danger {
+  flex: 1.3;
+  padding: 10px 14px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  border: none;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.tw-confirm-btn-danger:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(239, 68, 68, 0.6);
+  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+}
+
+/* --- Selected Photo Preview Strip --- */
+.tw-photo-preview-bar {
+  background: rgba(22, 25, 40, 0.98);
+  padding: 10px 16px;
+  border-top: 1px solid rgba(255, 77, 109, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tw-preview-thumb {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid #ff4d6d;
+  flex-shrink: 0;
+}
+
+.tw-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tw-preview-del {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.tw-preview-caption-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  outline: none;
+  color: #ffffff;
+  font-size: 14px;
+  padding: 8px 14px;
+  border-radius: 12px;
+}
+
+.tw-preview-caption-input:focus {
+  border-color: #ff4d6d;
+}
+
+/* --- Quick Emoji Tray --- */
+.tw-emoji-tray {
+  background: rgba(20, 23, 36, 0.96);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow-x: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tw-emoji-btn {
+  background: transparent;
+  border: none;
+  font-size: 21px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 8px;
+  transition: transform 0.15s, background-color 0.15s;
+}
+
+.tw-emoji-btn:hover {
+  transform: scale(1.3);
+  background-color: rgba(255, 77, 109, 0.15);
+}
+
+/* --- Bottom Input Footer --- */
+.tw-chat-footer {
+  background: rgba(18, 20, 32, 0.98);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.tw-footer-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.tw-footer-btn:hover {
+  background: rgba(255, 77, 109, 0.16);
+  border-color: rgba(255, 77, 109, 0.35);
+  color: #ff4d6d;
+  transform: scale(1.06);
+}
+
+.tw-input-pill {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.tw-input-pill:focus-within {
+  border-color: rgba(255, 77, 109, 0.6);
+  box-shadow: 0 0 16px rgba(255, 77, 109, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.tw-text-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  font-size: 15px;
+  font-family: inherit;
+}
+
+.tw-text-input::placeholder {
+  color: #64748b;
+}
+
+/* Send Button - Glowing Rose Gradient */
+.tw-send-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff4d6d 0%, #8a4fff 100%);
+  color: #ffffff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(255, 77, 109, 0.45);
+}
+
+.tw-send-btn:hover:not(:disabled) {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(255, 77, 109, 0.65);
+}
+
+.tw-send-btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.tw-send-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* --- Fullscreen Lightbox Preview for Photos --- */
+.tw-lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background-color: rgba(0, 0, 0, 0.94);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: twFadeIn 0.2s ease;
+}
+
+@keyframes twFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.tw-lightbox-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+
+.tw-lightbox-img {
+  max-width: 100%;
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: 16px;
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.tw-lightbox-toolbar {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  gap: 10px;
+}
+
+.tw-lightbox-btn {
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 9px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  transition: background-color 0.2s, transform 0.15s;
+  backdrop-filter: blur(6px);
+}
+
+.tw-lightbox-btn:hover {
+  background-color: #ff4d6d;
+  transform: scale(1.08);
+}
+
+/* ==============================================================================
+   Twogether Video Call Modal (Romantic Twilight Theme)
+   ============================================================================== */
+.tw-call-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  background-color: rgba(7, 8, 14, 0.9);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.tw-call-window {
+  position: relative;
+  width: 920px;
+  max-width: 100%;
+  height: 700px;
+  max-height: 92vh;
+  background-color: #0e101c;
+  border-radius: 28px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 77, 109, 0.25);
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.9),
+    0 0 36px rgba(255, 77, 109, 0.15);
+  display: flex;
+  flex-direction: column;
+}
+
+.tw-call-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(180deg, rgba(10, 11, 20, 0.85) 0%, transparent 100%);
+}
+
+.tw-call-peer-info {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.tw-call-peer-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #ff4d6d;
+  box-shadow: 0 0 12px rgba(255, 77, 109, 0.4);
+}
+
+.tw-call-peer-name {
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: 700;
+  font-family: var(--font-heading, inherit);
+}
+
+.tw-call-live-timer {
+  font-family: monospace;
+  font-size: 13.5px;
+  color: #34d399;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.tw-call-canvas {
+  flex: 1;
+  position: relative;
+  background-color: #090a12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.tw-remote-video-feed {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Floating Picture-in-Picture */
+.tw-pip-video-box {
+  position: absolute;
+  bottom: 100px;
+  right: 24px;
+  width: 170px;
+  height: 230px;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+  border: 2px solid rgba(255, 77, 109, 0.35);
+  background-color: #000000;
+  z-index: 25;
+}
+
+.tw-local-video-feed {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Calling State Overlay */
+.tw-call-state-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  background: rgba(11, 13, 23, 0.88);
+  backdrop-filter: blur(10px);
+  z-index: 10;
+}
+
+.tw-call-pulse-avatar {
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #ff4d6d;
+  box-shadow: 0 0 30px rgba(255, 77, 109, 0.5);
+  margin-bottom: 22px;
+  animation: twPulseBeacon 2s infinite;
+}
+
+.tw-call-controls-strip {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: linear-gradient(0deg, rgba(10, 11, 20, 0.9) 0%, transparent 100%);
+}
+
+.tw-call-action-btn {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(8px);
+}
+
+.tw-call-action-btn:hover {
+  transform: scale(1.12);
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.tw-call-action-btn.active-off {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: #ef4444;
+  color: #fca5a5;
+}
+
+.tw-hangup-btn {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  border: none;
+  padding: 0 28px;
+  height: 54px;
+  border-radius: 27px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.45);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.tw-hangup-btn:hover {
+  transform: scale(1.06);
+  box-shadow: 0 8px 26px rgba(239, 68, 68, 0.6);
+}
+
+/* Incoming Call Toast Banner */
+.tw-incoming-toast {
+  position: fixed;
+  top: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1600;
+  width: 420px;
+  max-width: calc(100% - 32px);
+  background: rgba(18, 20, 34, 0.96);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 77, 109, 0.35);
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.75),
+    0 0 24px rgba(255, 77, 109, 0.2);
+  border-radius: 20px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  animation: twToastSlideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes twToastSlideDown {
+  from { transform: translate(-50%, -24px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+.tw-incoming-info {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.tw-incoming-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff4d6d 0%, #8a4fff 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(255, 77, 109, 0.45);
+  animation: twPulseBeacon 1.5s infinite;
+}
+
+.tw-incoming-name {
+  color: #ffffff;
+  font-size: 15.5px;
+  font-weight: 700;
+}
+
+.tw-incoming-desc {
+  color: #ff9eaa;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.tw-incoming-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tw-incoming-decline-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s, background-color 0.15s;
+}
+
+.tw-incoming-decline-btn:hover {
+  transform: scale(1.1);
+  background: #ef4444;
+  color: white;
+}
+
+.tw-incoming-accept-btn {
+  padding: 0 18px;
+  height: 42px;
+  border-radius: 21px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  font-size: 13.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.45);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.tw-incoming-accept-btn:hover {
+  transform: scale(1.06);
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.6);
+}

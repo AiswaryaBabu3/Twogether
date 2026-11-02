@@ -5,13 +5,18 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5173,
+    port: Number(process.env.PORT) || 5173,
+    strictPort: false,
     host: true,
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
+        ws: true,
+      },
+      '/health': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
       },
       '/static': {
         target: 'http://localhost:8000',

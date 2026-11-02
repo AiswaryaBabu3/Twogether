@@ -6,6 +6,7 @@ Usage:
 
 import os
 import signal
+import socket
 import subprocess
 import sys
 import time
@@ -34,6 +35,21 @@ def kill_proc_tree(pid: int) -> None:
             os.kill(pid, signal.SIGTERM)
         except OSError:
             pass
+
+
+def is_port_in_use(port: int) -> bool:
+    """Check if a port is currently occupied by another application."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(0.5)
+        return s.connect_ex(("127.0.0.1", port)) == 0
+
+
+def find_available_port(start_port: int = 5173, max_attempts: int = 50) -> int:
+    """Find the next open port starting from start_port."""
+    for port in range(start_port, start_port + max_attempts):
+        if not is_port_in_use(port):
+            return port
+    return start_port
 
 
 def free_port(port: int) -> None:
@@ -88,14 +104,20 @@ def main() -> None:
     time.sleep(1.5)
 
     print()
-    print("[3/3] Starting React Vite Frontend on http://localhost:5173 ...")
-    free_port(5173)
-    frontend_proc = subprocess.Popen("npm run dev", cwd=FRONTEND_DIR, shell=True)
+    frontend_port = find_available_port(5173)
+    if frontend_port != 5173:
+        print(f"[3/3] Port 5173 is busy. Starting React Vite Frontend on another port: http://localhost:{frontend_port} ...")
+    else:
+        print(f"[3/3] Starting React Vite Frontend on http://localhost:{frontend_port} ...")
+
+    frontend_env = os.environ.copy()
+    frontend_env["PORT"] = str(frontend_port)
+    frontend_proc = subprocess.Popen("npm run dev", cwd=FRONTEND_DIR, shell=True, env=frontend_env)
 
     print()
     print("=" * 64)
     print("  Pipeline active! Press Ctrl+C in this terminal to stop both.")
-    print("  * Frontend UI:       http://localhost:5173")
+    print(f"  * Frontend UI:       http://localhost:{frontend_port}")
     print("  * Backend API:      http://localhost:8000")
     print("  * API Docs:         http://localhost:8000/docs")
     print("=" * 64)
